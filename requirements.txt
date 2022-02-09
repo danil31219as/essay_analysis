@@ -1,2 +1,5 @@
 st-annotated-text
 simpletransformers
+torch
+torchvision
+torchaudio
