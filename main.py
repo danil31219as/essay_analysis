@@ -27,7 +27,7 @@ model_args.max_seq_length = 512
 model_args.labels_list = custom_labels
 
 model = NERModel(
-    "bert", "danasone/rubert-tiny-essay", args=model_args, labels=custom_labels
+    "bert", "danasone/rubert-tiny-essay", args=model_args, labels=custom_labels, use_cuda=False
 )
 
 def show_json_annotations(text_type):
