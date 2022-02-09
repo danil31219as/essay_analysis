@@ -1,36 +1,20 @@
 import json
-from simpletransformers.ner import NERModel, NERArgs
+
 import streamlit as st
 from annotated_text import annotated_text
 
+from text_segmentation import SegmentationPredictor
+
 st.title('Визуализация разметки эссе')
 
-custom_labels = ['АРГУМЕНТ',
-                 'ИДЕЯ',
-                 'ИСП',
-                 'ЛОГИКА',
-                 'ОТНОШЕНИЕ',
-                 'ОЦЕНКА',
-                 'ПОЗИЦИЯ',
-                 'ПОНЯТИЕ',
-                 'ПОЯСНЕНИЕ',
-                 'ПРИМЕР',
-                 'ПРИЧИНА',
-                 'ПРОБЛЕМА',
-                 'РОЛЬ',
-                 'СВЯЗЬ',
-                 'СЛЕДСТВИЕ',
-                 'СЯП',
-                 'ТЕОРИЯ']
-model_args = NERArgs()
-model_args.max_seq_length = 512
-model_args.labels_list = custom_labels
 
-model = NERModel(
-    "bert", "danasone/rubert-tiny-essay", args=model_args, labels=custom_labels, use_cuda=False
-)
+@st.cache
+def get_segmentation_model():
+    model = SegmentationPredictor()
+    return model
 
-def show_json_annotations(text_type):
+
+def show_json_annotations(obj, text_type):
     ranges = []
     for select in obj['selections']:
         if select['group'] == text_type:
@@ -61,34 +45,27 @@ def sentence_samples(sentence):
 
 
 def predict_meaning(text):
-    predictions, raw_outputs = model.predict([sentence_samples(text)],
-                                             split_on_space=False)
-    annotations = []
-    last = list(predictions[0][0].values())[0]
-    last_i = 0
-    for i in range(len(predictions[0])):
-        key, val = list(predictions[0][i].items())[0]
-        if val != last:
-            new_sentence = ''
-            for pred in predictions[0][last_i:i]:
-                new_sentence += list(pred.keys())[0] + ' '
-            annotations.append((new_sentence, last))
-            last = val
-            last_i = i
-    new_sentence = ''
-    for pred in predictions[0][last_i:]:
-        new_sentence += list(pred.keys())[0] + ' '
-        annotations.append((new_sentence, last))
-    annotated_text(*annotations)
+    model = get_segmentation_model()
+    annotated_text(*model.get_annotations(text))
 
 
-text = st.text_area('Текст для анализа', value='', height=None, max_chars=None,
-                    key=None)
-predict_meaning(text)
-uploaded_file = st.file_uploader("Upload Files", type=['json', ])
-if uploaded_file is not None:
-    obj = json.loads(uploaded_file.read())
-    # open("data.json", 'w').write(str(uploaded_file.read(), 'utf8'))
+def main():
+    selected_mode = st.selectbox("Mode", ['segmentation', 'visualization'])
+    if selected_mode == 'segmentation':
+        text = st.text_area('Текст для анализа', value='', height=None,
+                            max_chars=None,
+                            key=None)
+        if text:
+            predict_meaning(text)
+    if selected_mode == 'visualization':
+        uploaded_file = st.file_uploader("Upload Files", type=['json', ])
+        if uploaded_file is not None:
+            obj = json.loads(uploaded_file.read())
+            # open("data.json", 'w').write(str(uploaded_file.read(), 'utf8'))
 
-    selected_option = st.selectbox("Options", ['meaning', 'error'])
-    show_json_annotations(selected_option)
+            selected_option = st.selectbox("Options", ['meaning', 'error'])
+            show_json_annotations(obj, selected_option)
+
+
+if __name__ == '__main__':
+    main()
