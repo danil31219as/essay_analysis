@@ -1,6 +1,6 @@
 from simpletransformers.config.model_args import NERArgs
 from simpletransformers.ner import NERModel
-
+import streamlit as st
 custom_labels = ['АРГУМЕНТ',
                  'ИДЕЯ',
                  'ИСП',
@@ -38,6 +38,7 @@ class SegmentationPredictor:
             labels=custom_labels, use_cuda=False
         )
 
+    @st.cache
     def get_annotations(self, text):
         predictions, raw_outputs = self.model.predict([sentence_samples(text)],
                                                  split_on_space=False)
